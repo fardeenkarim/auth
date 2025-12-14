@@ -142,7 +142,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         });
 
         const text = await response.text();
-        console.log("Raw Response:", text);
+        // console.log("Raw Response:", text); // Debug only
 
         let data;
         try {

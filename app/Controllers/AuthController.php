@@ -143,9 +143,15 @@ class AuthController {
             echo json_encode(['status' => 'error', 'message' => 'All required fields must be filled']);
             return;
         }
+
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid email address format']);
+            return;
+        }
         
-        if (strlen($data['password']) < 6) {
-            echo json_encode(['status' => 'error', 'message' => 'Password must be at least 6 characters']);
+        // Password Complexity: At least 8 chars, 1 letter, 1 number
+        if (strlen($data['password']) < 8 || !preg_match("/[a-z]/i", $data['password']) || !preg_match("/[0-9]/", $data['password'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Password must be at least 8 characters and contain both letters and numbers']);
             return;
         }
 
