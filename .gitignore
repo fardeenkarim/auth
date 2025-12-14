@@ -1,0 +1,5 @@
+.env
+.DS_Store
+*.log
+debug_error.log
+/vendor
