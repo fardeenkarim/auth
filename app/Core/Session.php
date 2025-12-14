@@ -6,7 +6,7 @@ class Session {
         if (session_status() === PHP_SESSION_NONE) {
             // Secure Session Settings
             ini_set('session.cookie_httponly', 1);
-            ini_set('session.cookie_samesite', 'Strict');
+            ini_set('session.cookie_samesite', 'Lax');
             
             // Only use Secure cookies if HTTPS is on
             if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {

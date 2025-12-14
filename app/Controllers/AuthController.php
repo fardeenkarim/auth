@@ -7,6 +7,7 @@ use App\Core\SMTPMailer;
 use App\Core\Security;
 use App\Core\CSRF;
 use App\Helpers\EmailTemplate;
+use App\Helpers\AsyncMailer;
 
 class AuthController {
     
@@ -38,7 +39,13 @@ class AuthController {
     // Helper for checks
     private function verifyCsrf() {
         $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? '';
+        
+        // Debug CSRF
+        // error_log("CSRF Check: Received ['$token'] vs Session ['" . (Session::get('csrf_token') ?? 'NULL') . "']");
+        
         if (!CSRF::check($token)) {
+            // Log the mismatch to help debug
+            error_log("CSRF FAILED: Received ['$token'] vs Session ['" . (Session::get('csrf_token') ?? 'NULL') . "'] - IP: " . $_SERVER['REMOTE_ADDR']);
             echo json_encode(['status' => 'error', 'message' => 'Security Token Invalid (CSRF)']);
             exit;
         }
@@ -118,9 +125,8 @@ class AuthController {
         
         // Send Email
         try {
-            $mailer = new SMTPMailer();
             $html = EmailTemplate::generate("Verification Code", "Here is your new verification code. It is valid for 15 minutes.", $code);
-            $mailer->send($email, "Resend Verify Account", $html);
+            AsyncMailer::send($email, "Resend Verify Account", $html);
             echo json_encode(['status' => 'success', 'message' => 'New code sent to your email.']);
         } catch (\Exception $e) {
             error_log("SMTP Error: " . $e->getMessage());
@@ -171,9 +177,8 @@ class AuthController {
                 $userModel->setOtp($user['id'], $code);
                 
                 // Send Email
-                $mailer = new SMTPMailer();
                 $html = EmailTemplate::generate("Verify Account", "Welcome {$data['first_name']}!<br>Please verify your email address to get started.", $code);
-                $mailer->send($data['email'], "Verify Account", $html);
+                AsyncMailer::send($data['email'], "Verify Account", $html);
                 
                 // Set Session for Verification
                 Session::set('user_id', $user['id']);
@@ -234,10 +239,9 @@ class AuthController {
                 Security::log($user['id'], 'New Device OTP Sent');
                 
                 try {
-                    $mailer = new SMTPMailer();
                     $content = "We detected a login from a new device.<br><b>Device:</b> " . ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown') . "<br><b>IP:</b> " . $_SERVER['REMOTE_ADDR'];
                     $html = EmailTemplate::generate("New Device Alert", $content, $code);
-                    $mailer->send($user['email'], "Security Alert: New Device Detected", $html);
+                    AsyncMailer::send($user['email'], "Security Alert: New Device Detected", $html);
                 } catch (\Exception $e) {
                     error_log("Login OTP Error: " . $e->getMessage());
                     echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP code.']);
@@ -260,25 +264,15 @@ class AuthController {
             
             // Send Email
             try {
-                $mailer = new SMTPMailer();
                 $html = EmailTemplate::generate("Verify Login", "Please enter the code below to complete your login.", $code);
-                $mailer->send($user['email'], "Verify Account", $html);
+                AsyncMailer::send($user['email'], "Verify Account", $html);
             } catch (\Exception $e) {
                 error_log("Login OTP Error: " . $e->getMessage());
                 echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP code.']);
                 return;
             }
             
-            // Set Session for Verification
-            Session::set('user_id', $user['id']);
-            $mailer = new SMTPMailer();
-            $emailBody = "Your Verification Code is: {$code}";
-            $mailer->send($user['email'], "Verify Account", $emailBody);
-        } catch (\Exception $e) {
-            error_log("Login OTP Error: " . $e->getMessage());
-            echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP code.']);
-            return;
-        }
+
         
         // Set Session for Verification
         Session::set('user_id', $user['id']);
@@ -320,9 +314,8 @@ class AuthController {
         if ($token) {
             try {
                 $resetLink = BASE_URL . "/reset-password?token=" . $token;
-                $mailer = new SMTPMailer();
                 $html = EmailTemplate::generate("Password Reset", "You requested a password reset. Click the button below to proceed.", null, $resetLink, "Reset Password");
-                $mailer->send($email, "Password Reset", $html);
+                AsyncMailer::send($email, "Password Reset", $html);
                 
                 echo json_encode(['status' => 'success', 'message' => 'Reset link sent! Check your email.']);
             } catch (\Exception $e) {

@@ -92,51 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    // Also handle Register form redirect to OTP
-    const registerForm = document.getElementById('register-form');
-    // Assuming register-form logic might be in register.php view directly, but if it was here:
-    // If not, we rely on the specific page's script. 
-    // But let's check if we need to add a global listener for the generic register form if it exists?
-    // The register.php view likely has its own script or uses this. 
-    // Checking register.php (not retrieved) but assuming it might need similar handling. 
-    // I'll add a generic one if an element with ID register-form exists.
-    if (registerForm) {
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(registerForm);
-            const btn = registerForm.querySelector('button[type="submit"]');
-            const originalText = btn.innerText;
-
-            try {
-                btn.innerText = 'Creating Account...';
-                btn.disabled = true;
-
-                const response = await fetch('api/register', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.status === 'verification_required') {
-                    showOtpModal();
-                } else {
-                    showToast(data.message || 'Registration failed', data.status === 'error' ? 'error' : 'success');
-                }
-
-            } catch (error) {
-                console.error(error);
-                showToast('An error occurred.', 'error');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        });
-    }
 });
 
 function showOtpModal() {

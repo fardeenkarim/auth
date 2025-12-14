@@ -138,11 +138,14 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         
         const response = await fetch(actionUrl, {
             method: 'POST',
+            headers: {
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
             body: formData
         });
 
         const text = await response.text();
-        // console.log("Raw Response:", text); // Debug only
+
 
         let data;
         try {
